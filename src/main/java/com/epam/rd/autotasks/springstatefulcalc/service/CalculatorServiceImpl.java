@@ -8,8 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static com.epam.rd.autotasks.springstatefulcalc.utils.ConversionUtil.deleteSpacesAndConvertListToString;
 import static com.epam.rd.autotasks.springstatefulcalc.constants.ControllerConstants.EMPTY_SYMBOL;
+import static com.epam.rd.autotasks.springstatefulcalc.utils.ConversionUtil.deleteSpacesAndConvertListToString;
 
 @Service
 public class CalculatorServiceImpl implements Calculator {

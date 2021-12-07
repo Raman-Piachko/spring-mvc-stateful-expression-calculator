@@ -1,6 +1,7 @@
 package com.epam.rd.autotasks.springstatefulcalc.controller;
 
 import com.epam.rd.autotasks.springstatefulcalc.service.Calculator;
+import com.epam.rd.autotasks.springstatefulcalc.service.SessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,26 +21,23 @@ import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.epam.rd.autotasks.springstatefulcalc.constants.ControllerConstants.ABS_RANGE;
-import static com.epam.rd.autotasks.springstatefulcalc.constants.ControllerConstants.DIVIDE;
 import static com.epam.rd.autotasks.springstatefulcalc.constants.ControllerConstants.EXPRESSION;
-import static com.epam.rd.autotasks.springstatefulcalc.constants.ControllerConstants.MINUS;
-import static com.epam.rd.autotasks.springstatefulcalc.constants.ControllerConstants.MULTIPLY;
-import static com.epam.rd.autotasks.springstatefulcalc.constants.ControllerConstants.PLUS;
 
 @Controller
 @RequestMapping("/calc")
 public class CalculatorController {
 
     private final Calculator calculator;
+    private final SessionService sessionService;
 
     @Autowired
-    public CalculatorController(Calculator calculator) {
+    public CalculatorController(Calculator calculator, SessionService sessionService) {
         this.calculator = calculator;
+        this.sessionService = sessionService;
     }
 
     @GetMapping("/result")
-    public ResponseEntity getResult(ServletResponse resp, HttpSession session)
+    public ResponseEntity<HttpStatus> getResult(ServletResponse resp, HttpSession session)
             throws IOException {
         PrintWriter writer = resp.getWriter();
         String expression = (String) session.getAttribute(EXPRESSION);
@@ -54,24 +52,14 @@ public class CalculatorController {
     }
 
     @PutMapping("/{variable}")
-    public ResponseEntity putVariable(@PathVariable String variable, ServletRequest request, HttpSession session)
+    public ResponseEntity<HttpStatus> putVariable(@PathVariable String variable, ServletRequest request, HttpSession session)
             throws IOException {
         String value = request.getReader().readLine();
 
-        if (EXPRESSION.equalsIgnoreCase(variable)) {
-            if (isGoodFormatExpression(value)) {
-               return addData(variable, session, value);
-            } else {
-                return new ResponseEntity(HttpStatus.BAD_REQUEST);
-            }
-        } else {
-            if (!isParameterHasOverLimitValue(value)) {
-                return addData(variable, session, value);
-            } else {
-                return new ResponseEntity(HttpStatus.FORBIDDEN);
-            }
-        }
+        return sessionService.getResponseEntityByPutVariable(variable, session, value);
     }
+
+
 
     @DeleteMapping("/{variable}")
     public ResponseEntity deleteValue(@PathVariable("variable") String variable, HttpSession session) {
@@ -91,27 +79,5 @@ public class CalculatorController {
         return attributeValueMap;
     }
 
-    private ResponseEntity addData(String variable, HttpSession session, String value) {
-        if (session.getAttribute(variable) == null) {
-            session.setAttribute(variable, value);
-            return new ResponseEntity(HttpStatus.CREATED);
-        } else {
-            session.setAttribute(variable, value);
-            return new ResponseEntity(HttpStatus.OK);
-        }
-    }
 
-    private boolean isGoodFormatExpression(String expression) {
-        return (expression.contains(PLUS) || expression.contains(MINUS) ||
-                expression.contains(DIVIDE) || expression.contains(MULTIPLY));
-    }
-
-    private boolean isParameterHasOverLimitValue(String paramValue) {
-        try {
-            int i = Integer.parseInt(paramValue);
-            return Math.abs(i) > ABS_RANGE;
-        } catch (Exception e) {
-            return false;
-        }
-    }
 }
