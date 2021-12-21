@@ -10,18 +10,14 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpSession;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Enumeration;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-import static com.epam.rd.autotasks.springstatefulcalc.constants.ControllerConstants.EXPRESSION;
+import static com.epam.rd.autotasks.springstatefulcalc.constants.ControllerConstants.SESSION_KEY_EXPRESSION;
 
 @Controller
 @RequestMapping("/calc")
@@ -37,47 +33,40 @@ public class CalculatorController {
     }
 
     @GetMapping("/result")
-    public ResponseEntity<HttpStatus> getResult(ServletResponse resp, HttpSession session)
-            throws IOException {
-        PrintWriter writer = resp.getWriter();
-        String expression = (String) session.getAttribute(EXPRESSION);
-        Map<String, String> attributeValueMap = getAttributeValueMap(session);
-        try {
-            writer.print(calculator.calculate(expression, attributeValueMap));
-            writer.close();
-            return new ResponseEntity(HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity(HttpStatus.CONFLICT);
-        }
+    public ResponseEntity<Integer> getResult(HttpSession session) {
+        String expression = (String) session.getAttribute(SESSION_KEY_EXPRESSION);
+        Map<String, String> attributeValueMap = sessionService.getAttributeValueMap(session);
+        int calculate = calculator.calculate(expression, attributeValueMap);
+
+        return new ResponseEntity<>(calculate, HttpStatus.OK);
+    }
+
+    @PutMapping("/expression")
+    public ResponseEntity<HttpStatus> putExpression(@RequestBody String value, HttpSession session) {
+        boolean isVariableExist = sessionService.isVariableExists(SESSION_KEY_EXPRESSION, session);
+        sessionService.addExpression(session, value);
+        return getResponseEntity(isVariableExist);
     }
 
     @PutMapping("/{variable}")
-    public ResponseEntity<HttpStatus> putVariable(@PathVariable String variable, ServletRequest request, HttpSession session)
-            throws IOException {
-        String value = request.getReader().readLine();
+    public ResponseEntity<HttpStatus> putVariable(@RequestBody String value, @PathVariable String variable, HttpSession session) {
+        boolean isVariableExist = sessionService.isVariableExists(variable, session);
+        sessionService.addVariable(variable, session, value);
 
-        return sessionService.getResponseEntityByPutVariable(variable, session, value);
+        return getResponseEntity(isVariableExist);
     }
-
-
 
     @DeleteMapping("/{variable}")
-    public ResponseEntity deleteValue(@PathVariable("variable") String variable, HttpSession session) {
-        session.setAttribute(variable, null);
-        return new ResponseEntity(HttpStatus.NO_CONTENT);
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteValue(@PathVariable("variable") String variable, HttpSession session) {
+        sessionService.deleteAttribute(session, variable);
     }
 
-    private Map<String, String> getAttributeValueMap(HttpSession session) {
-        Enumeration<String> attributeNames = session.getAttributeNames();
-        Map<String, String> attributeValueMap = new ConcurrentHashMap<>();
-
-        while (attributeNames.hasMoreElements()) {
-            String attributeName = attributeNames.nextElement();
-            attributeValueMap.put(attributeName, (String) session.getAttribute(attributeName));
+    private ResponseEntity<HttpStatus> getResponseEntity(boolean isVariableExist) {
+        if (isVariableExist) {
+            return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.CREATED);
         }
-
-        return attributeValueMap;
     }
-
-
 }

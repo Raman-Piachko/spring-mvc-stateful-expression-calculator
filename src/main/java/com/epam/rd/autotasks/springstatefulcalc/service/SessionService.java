@@ -1,10 +1,16 @@
 package com.epam.rd.autotasks.springstatefulcalc.service;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
 import javax.servlet.http.HttpSession;
+import java.util.Map;
 
 public interface SessionService {
-    ResponseEntity<HttpStatus> getResponseEntityByPutVariable(String variable, HttpSession session, String value);
+    void deleteAttribute(HttpSession session, String variable);
+
+    Map<String, String> getAttributeValueMap(HttpSession session);
+
+    boolean isVariableExists(String variable, HttpSession session);
+
+    void addVariable(String variable, HttpSession session, String value);
+
+    void addExpression(HttpSession session, String value);
 }

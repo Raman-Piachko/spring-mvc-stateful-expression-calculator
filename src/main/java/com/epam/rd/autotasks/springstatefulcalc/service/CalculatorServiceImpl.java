@@ -9,15 +9,17 @@ import java.util.List;
 import java.util.Map;
 
 import static com.epam.rd.autotasks.springstatefulcalc.constants.ControllerConstants.EMPTY_SYMBOL;
+import static com.epam.rd.autotasks.springstatefulcalc.constants.ServiceConstants.ALPHABETICAL_REGEX;
+import static com.epam.rd.autotasks.springstatefulcalc.constants.ServiceConstants.CONTAINS_LETTER;
 import static com.epam.rd.autotasks.springstatefulcalc.utils.ConversionUtil.deleteSpacesAndConvertListToString;
 
 @Service
 public class CalculatorServiceImpl implements Calculator {
-
     @Override
     public int calculate(String expression, Map<String, String> attributeValueMap) {
         MathParser mathParser = MathParserFactory.create();
         String finalExpression = getFinalExpression(expression, attributeValueMap);
+        validateFinalExpression(finalExpression);
 
         return mathParser.calculate(finalExpression)
                 .doubleValue()
@@ -48,12 +50,14 @@ public class CalculatorServiceImpl implements Calculator {
         }
     }
 
-    private boolean isExpressionWithVariables(Map<String, String> parameters, List<String> expression) {
-        for (String s : expression) {
-            if (parameters.containsKey(s)) {
-                return true;
-            }
+    private void validateFinalExpression(String finalExpression) {
+        boolean atLeastOneAlpha = finalExpression.matches(ALPHABETICAL_REGEX);
+        if (atLeastOneAlpha) {
+            throw new IllegalArgumentException(CONTAINS_LETTER);
         }
-        return false;
+    }
+
+    private boolean isExpressionWithVariables(Map<String, String> parameters, List<String> expression) {
+        return expression.stream().anyMatch(parameters::containsKey);
     }
 }
